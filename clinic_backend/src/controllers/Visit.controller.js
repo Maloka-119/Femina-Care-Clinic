@@ -1,12 +1,20 @@
-const Patient= require('../models/Patient');
-const Visit= require('../models/Visit');
+const Patient = require('../models/Patient');
+const Visit = require('../models/Visit');
 
 // Add a new medical visit/examination
 exports.addVisit = async (req, res) => {
     try {
-        const { patientId } = req.body;
+        const { patientId, visitType, clinicName, reasonForVisit } = req.body;
 
-        // Check if patient exists first
+        // Validate required fields
+        if (!patientId || !visitType || !clinicName || !reasonForVisit) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: patientId, visitType, clinicName, or reasonForVisit."
+            });
+        }
+
+        // Check if patient exists
         const patient = await Patient.findByPk(patientId);
         if (!patient) {
             return res.status(404).json({
@@ -15,9 +23,10 @@ exports.addVisit = async (req, res) => {
             });
         }
 
+        // Create the visit (only pass patientId with small p)
         const visit = await Visit.create({
             ...req.body,
-            PatientId: patientId
+            patientId // correct field name
         });
 
         res.status(201).json({
@@ -25,7 +34,9 @@ exports.addVisit = async (req, res) => {
             message: "Visit recorded successfully",
             data: visit
         });
+
     } catch (error) {
+        console.error(error);
         res.status(400).json({
             success: false,
             message: "Failed to record visit",
@@ -34,18 +45,20 @@ exports.addVisit = async (req, res) => {
     }
 };
 
-// Get all visits for a specific patient (Optional helper)
+// Get all visits for a specific patient
 exports.getVisitsByPatient = async (req, res) => {
     try {
         const visits = await Visit.findAll({
-            where: { PatientId: req.params.patientId },
+            where: { patientId: req.params.patientId }, // small p
             order: [['visitDate', 'DESC']]
         });
+
         res.status(200).json({
             success: true,
             data: visits
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({
             success: false,
             message: "Error fetching visits",

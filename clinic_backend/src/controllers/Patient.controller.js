@@ -1,16 +1,26 @@
-const Patient= require('../models/Patient');
-const Visit= require('../models/Visit');
+const { Patient, Visit } = require('../models');
 
 // Create a new patient
 exports.createPatient = async (req, res) => {
     try {
-        const patient = await Patient.create(req.body);
+        const data = { ...req.body };
+
+        // لو الحالة Miss، نحذف الحقول الخاصة بالزوج
+        if (data.maritalStatus === 'Miss') {
+            data.husbandName = null;
+            data.husbandJob = null;
+            data.marriageDate = null;
+        }
+
+        const patient = await Patient.create(data);
+
         res.status(201).json({
             success: true,
             message: "Patient registered successfully",
             data: patient
         });
     } catch (error) {
+        console.error("Create Patient Error:", error);
         res.status(400).json({
             success: false,
             message: "Failed to register patient",
@@ -31,6 +41,7 @@ exports.getAllPatients = async (req, res) => {
             data: patients
         });
     } catch (error) {
+        console.error("Get All Patients Error:", error);
         res.status(500).json({
             success: false,
             message: "Error fetching patients",
@@ -43,10 +54,7 @@ exports.getAllPatients = async (req, res) => {
 exports.getPatientDetails = async (req, res) => {
     try {
         const patient = await Patient.findByPk(req.params.id, {
-            include: [{
-                model: Visit,
-                as: 'Visits'
-            }]
+            include: [{ model: Visit, as: 'Visits' }]
         });
 
         if (!patient) {
@@ -61,6 +69,7 @@ exports.getPatientDetails = async (req, res) => {
             data: patient
         });
     } catch (error) {
+        console.error("Get Patient Details Error:", error);
         res.status(500).json({
             success: false,
             message: "Error fetching patient details",

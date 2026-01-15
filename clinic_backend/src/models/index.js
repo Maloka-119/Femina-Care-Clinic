@@ -7,9 +7,7 @@ const Visit = require('./Visit');
 
 // Associations
 Patient.hasMany(Visit, { foreignKey: 'patientId', as: 'Visits' });
-Visit.belongsTo(Patient, { foreignKey: 'patientId' });
-
-
+Visit.belongsTo(Patient, { foreignKey: 'patientId', as: 'Patient' });
 
 // Export everything
 module.exports = {

@@ -2,78 +2,24 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const Visit = sequelize.define('Visit', {
-// 1. Basic Visit Data
-visitType: { type: DataTypes.ENUM('Examination', 'Consultation'),
-allowNull: false
-},
-clinicName: { type: DataTypes.STRING },
-visitDate: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
-
-// 2. Detection Issue (Tumor and Bleeding Options Added)
-reasonForVisit: { type: DataTypes.ENUM(
-'Antinatal',
-'Postnatal',
-'Virgin',
-'Other',
-'Tumor', // Tumor Presence
-'Bleeding' // Bleeding Presence
-),
-allowNull: false
-},
-
-// 3. Biometrics
-weight: { type: DataTypes.FLOAT }, // Maternal Weight
-
-bloodPressure: { type: DataTypes.STRING }, // Blood Pressure
-
-bloodSugar: { type: DataTypes.STRING }, // Blood Sugar Measurement
-
-// 4. In the case of pregnancy (Antinatal)
-
-gestationalWeek: {
-type: DataTypes.INTEGER,
-
-comment: 'Week of pregnancy'
-
-},
-
-fetalWeight: {
-type: DataTypes.FLOAT,
-
-comment: 'Fetal weight'
-
-},
-
-fetalSize: {
-type: DataTypes.STRING,
-
-comment: 'Fetal size'
-
-},
-
-// 5. Medical Details and Results
-
-requiredTests: {
-type: DataTypes.TEXT,
-
-comment: 'Required tests'
-
-},
-
-prescribedMedications: {
-type: DataTypes.TEXT,
-
-comment: 'Required medications'
-
-},
-notes: {
-type: DataTypes.TEXT,
-comment: 'Disclosure Notes'
-},
-otherObservations: {
-type: DataTypes.TEXT,
-comment: 'Other Notes'
-}
+    patientId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+    },
+    visitType: { type: DataTypes.ENUM('Examination', 'Consultation'), allowNull: false },
+    clinicName: { type: DataTypes.STRING },
+    visitDate: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+    reasonForVisit: { type: DataTypes.ENUM('Antinatal','Postnatal','Virgin','Other','Tumor','Bleeding'), allowNull: false },
+    weight: { type: DataTypes.FLOAT },
+    bloodPressure: { type: DataTypes.STRING },
+    bloodSugar: { type: DataTypes.STRING },
+    gestationalWeek: { type: DataTypes.INTEGER },
+    fetalWeight: { type: DataTypes.FLOAT },
+    fetalSize: { type: DataTypes.STRING },
+    requiredTests: { type: DataTypes.TEXT },
+    prescribedMedications: { type: DataTypes.TEXT },
+    notes: { type: DataTypes.TEXT },
+    otherObservations: { type: DataTypes.TEXT }
 });
 
 module.exports = Visit;
