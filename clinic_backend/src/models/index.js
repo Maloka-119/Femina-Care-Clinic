@@ -1,133 +1,56 @@
-const sequelize = require('../config/database');
+const sequelize = require('../config/db');
 
-const User = require('./User');
 const Clinic = require('./Clinic');
+const ClinicBranch = require('./ClinicBranch');
+const User = require('./User');
 const Patient = require('./Patient');
-const HusbandInfo = require('./HusbandInfo');
 const Visit = require('./Visit');
-const Delivery = require('./Pregnancy');
+const HusbandInfo = require('./HusbandInfo');
+const DeliveryHistory = require('./DeliveryHistory');
 
-/**
- * MODEL ASSOCIATIONS
- * Defining relationships between models
- */
+// Clinic <-> ClinicBranch
+Clinic.hasMany(ClinicBranch, { foreignKey: 'clinicId' });
+ClinicBranch.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-// ========== CLINIC ASSOCIATIONS ==========
-// Clinic -> Owner (ClinicOwner user)
-Clinic.belongsTo(User, {
-    foreignKey: 'ownerId',
-    as: 'owner',
-    constraints: false
-});
+// Clinic <-> User (owners, admins, employees)
+Clinic.hasMany(User, { foreignKey: 'clinicId' });
+User.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-// User -> Owned Clinics (for ClinicOwner)
-User.hasMany(Clinic, {
-    foreignKey: 'ownerId',
-    as: 'ownedClinics'
-});
+// ClinicBranch <-> User (employees at branch)
+ClinicBranch.hasMany(User, { foreignKey: 'clinicBranchId' });
+User.belongsTo(ClinicBranch, { foreignKey: 'clinicBranchId' });
 
-// ========== USER - CLINIC ASSOCIATIONS ==========
-// User (Doctor) -> Clinic
-User.belongsTo(Clinic, {
-    foreignKey: 'clinicId',
-    as: 'clinic',
-    constraints: false
-});
+// Clinic <-> Patient
+Clinic.hasMany(Patient, { foreignKey: 'clinicId' });
+Patient.belongsTo(Clinic, { foreignKey: 'clinicId' });
 
-// Clinic -> Users (Staff/Doctors)
-Clinic.hasMany(User, {
-    foreignKey: 'clinicId',
-    as: 'staff'
-});
+// Patient <-> Visit
+Patient.hasMany(Visit, { foreignKey: 'patientId' });
+Visit.belongsTo(Patient, { foreignKey: 'patientId' });
 
-// ========== PATIENT ASSOCIATIONS ==========
-// Patient -> Clinic
-Patient.belongsTo(Clinic, {
-    foreignKey: 'clinicId',
-    as: 'clinic'
-});
+// ClinicBranch <-> Visit
+ClinicBranch.hasMany(Visit, { foreignKey: 'clinicBranchId' });
+Visit.belongsTo(ClinicBranch, { foreignKey: 'clinicBranchId' });
 
-// Clinic -> Patients
-Clinic.hasMany(Patient, {
-    foreignKey: 'clinicId',
-    as: 'patients'
-});
+// User (employee) <-> Visit
+User.hasMany(Visit, { foreignKey: 'employeeId' });
+Visit.belongsTo(User, { foreignKey: 'employeeId' });
 
-// Patient -> Doctor (who registered patient)
-Patient.belongsTo(User, {
-    foreignKey: 'doctorId',
-    as: 'doctor'
-});
+// Patient <-> HusbandInfo (optional one-to-one)
+Patient.hasOne(HusbandInfo, { foreignKey: 'patientId' });
+HusbandInfo.belongsTo(Patient, { foreignKey: 'patientId' });
 
-// User (Doctor) -> Patients (managed by this doctor)
-User.hasMany(Patient, {
-    foreignKey: 'doctorId',
-    as: 'patientsManaged'
-});
-
-// ========== HUSBAND INFO ASSOCIATIONS ==========
-// HusbandInfo -> Patient (One-to-One)
-HusbandInfo.belongsTo(Patient, {
-    foreignKey: 'patientId',
-    as: 'patient'
-});
-
-// Patient -> HusbandInfo (One-to-One)
-Patient.hasOne(HusbandInfo, {
-    foreignKey: 'patientId',
-    as: 'husbandInfo'
-});
-
-// ========== VISIT ASSOCIATIONS ==========
-// Visit -> Patient
-Visit.belongsTo(Patient, {
-    foreignKey: 'patientId',
-    as: 'patient'
-});
-
-// Patient -> Visits
-Patient.hasMany(Visit, {
-    foreignKey: 'patientId',
-    as: 'visits'
-});
-
-// Visit -> Doctor
-Visit.belongsTo(User, {
-    foreignKey: 'doctorId',
-    as: 'doctor'
-});
-
-// User (Doctor) -> Visits (conducted by this doctor)
-User.hasMany(Visit, {
-    foreignKey: 'doctorId',
-    as: 'visitsRecorded'
-});
-
-// Visit -> Clinic
-Visit.belongsTo(Clinic, {
-    foreignKey: 'clinicId',
-    as: 'clinic'
-});
-
-// ========== DELIVERY ASSOCIATIONS ==========
-// Delivery -> Patient
-Delivery.belongsTo(Patient, {
-    foreignKey: 'patientId',
-    as: 'patient'
-});
-
-// Patient -> Deliveries
-Patient.hasMany(Delivery, {
-    foreignKey: 'patientId',
-    as: 'deliveries'
-});
+// Patient <-> DeliveryHistory
+Patient.hasMany(DeliveryHistory, { foreignKey: 'patientId' });
+DeliveryHistory.belongsTo(Patient, { foreignKey: 'patientId' });
 
 module.exports = {
     sequelize,
-    User,
     Clinic,
+    ClinicBranch,
+    User,
     Patient,
-    HusbandInfo,
     Visit,
-    Delivery
+    HusbandInfo,
+    DeliveryHistory
 };

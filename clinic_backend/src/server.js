@@ -1,28 +1,59 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { sequelize } = require('./models');
-const apiRoutes = require('./routes/api.route');
+// src/server.js
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const bcrypt = require('bcryptjs'); 
+const sequelize = require("./config/db");
+
+// استدعاء الراوتس
+const authRoutes = require("./routes/auth.routes");
+const adminRoutes = require("./routes/admin.routes");
+const clinicRoutes = require("./routes/clinic.routes");
+
+// استدعاء المودلز
+const { User } = require("./models");
 
 const app = express();
-
-app.use(cors());
 app.use(express.json());
+app.use(cors({
+    origin: process.env.FRONTEND_URL
+}));
 
-app.use('/api', apiRoutes);
-const pregnancyRoutes = require('./routes/pregnancy.route');
-app.use('/api/pregnancies', pregnancyRoutes);
+// Routes
+app.use("/clinic/auth", authRoutes);
+app.use("/clinic/admin", adminRoutes);
+app.use("/clinic", clinicRoutes);
 
+// Test route
+app.get("/", (req, res) => res.send("Clinic API is running"));
 
 const PORT = process.env.PORT || 5000;
-const { initAdmin } = require('./seeders/initAdmin');
 
-sequelize.sync()
-    .then(() => initAdmin())
-    .then(() => {
-        console.log('Database Connected');
-        app.listen(PORT, () => {
-            console.log(`Server running on http://localhost:${PORT}`);
-        });
-    })
-    .catch(err => console.error(err));
+(async () => {
+    try {
+        await sequelize.authenticate();
+        console.log("Database connected successfully");
+
+        await sequelize.sync();
+        console.log("Database synchronized");
+
+        // ===== إضافة Super Admin إذا مش موجود =====
+        const exists = await User.findOne({ where: { role: 'ADMIN' } });
+        if (!exists) {
+            await User.create({
+                name: 'Super Admin',
+                email: 'malakmhemdan@gmail.com',
+                password: await bcrypt.hash('clinicmanage123#', 10),
+                role: 'ADMIN',
+                isActive: true
+            });
+            console.log("Super Admin created successfully");
+        } else {
+            console.log("Super Admin already exists");
+        }
+
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    } catch (err) {
+        console.error("Error starting server:", err);
+    }
+})();

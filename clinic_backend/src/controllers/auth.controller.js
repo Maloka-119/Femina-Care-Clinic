@@ -1,59 +1,62 @@
-const authService = require('../services/auth.service');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { User, Clinic } = require('../models');
 
-exports.me = async (req, res) => {
+exports.registerOwner = async (req, res) => {
     try {
-        const user = authService.sanitizeUser(req.user);
-        return res.json({ user });
-    } catch (err) {
-        return res.status(500).json({ message: err.message || 'Failed to get user' });
-    }
-};
+        const { name, email, password } = req.body;
 
-exports.register = async (req, res) => {
-    try {
-        const { name, email, password, clinicId } = req.body;
-        if (!name || !email || !password || !clinicId) {
-            return res.status(400).json({ message: 'Name, email, password and clinic ID are required' });
-        }
-        const user = await authService.register({ name, email, password, clinicId });
-        return res.status(201).json({
-            message: 'Registration request submitted. Pending approval.',
-            user: { id: user.id, name: user.name, email: user.email, status: user.status }
+        const exists = await User.findOne({ where: { email } });
+        if (exists) return res.status(400).json({ message: 'Email already exists' });
+
+        const hashed = await bcrypt.hash(password, 10);
+
+        await User.create({
+            name,
+            email,
+            password: hashed,
+            role: 'OWNER',
+            isActive: false
         });
+
+        res.status(201).json({ message: 'Waiting for admin approval' });
+
     } catch (err) {
-        if (err.message === 'EMAIL_EXISTS') return res.status(400).json({ message: 'Email already exists' });
-        if (err.message === 'CLINIC_NOT_FOUND') return res.status(400).json({ message: 'Invalid or inactive clinic ID' });
-        return res.status(500).json({ message: err.message || 'Registration failed' });
+        res.status(500).json({ error: err.message });
     }
 };
 
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ message: 'Email and password are required' });
-        }
-        const result = await authService.login({ email, password });
-        return res.json({
-            token: result.token,
-            user: result.user,
-            name: result.user.name,
-            email: result.user.email,
-            role: result.user.role
-        });
+        if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
+
+        const user = await User.findOne({ where: { email }, include: [Clinic] });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        if (!user.isActive) return res.status(403).json({ message: 'Account inactive' });
+
+        if (user.Clinic && !user.Clinic.isActive)
+            return res.status(403).json({ message: 'Clinic inactive' });
+
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) return res.status(400).json({ message: 'Wrong password' });
+
+        const token = jwt.sign(
+            {
+                id: user.id,
+                role: user.role,
+                clinicId: user.clinicId,
+                clinicBranchId: user.clinicBranchId || null
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        const { password: _, ...safeUser } = user.toJSON();
+        res.json({ token, user: safeUser });
+
     } catch (err) {
-        if (err.message === 'USER_NOT_FOUND' || err.message === 'INVALID_CREDENTIALS') {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
-        if (err.message === 'ACCOUNT_INACTIVE') {
-            return res.status(403).json({ message: 'Account is inactive. Contact administrator.' });
-        }
-        if (err.message === 'PENDING_APPROVAL') {
-            return res.status(403).json({ message: 'Your registration is pending approval.' });
-        }
-        if (err.message === 'CLINIC_ACCESS_SUSPENDED') {
-            return res.status(403).json({ message: 'Clinic access is suspended. Contact your clinic owner.' });
-        }
-        return res.status(500).json({ message: err.message || 'Login failed' });
+        res.status(500).json({ error: err.message });
     }
 };

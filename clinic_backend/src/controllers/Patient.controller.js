@@ -1,79 +1,79 @@
-const { Patient, Visit } = require('../models');
+const { Patient, HusbandInfo, DeliveryHistory } = require('../models');
 
-// Create a new patient
+/** POST /clinic/patients - create patient (clinicId in body or from user) */
 exports.createPatient = async (req, res) => {
     try {
-        const data = { ...req.body };
-
-        // لو الحالة Miss، نحذف الحقول الخاصة بالزوج
-        if (data.maritalStatus === 'Miss') {
-            data.husbandName = null;
-            data.husbandJob = null;
-            data.marriageDate = null;
+        const { name, age, gender, contactInfo, clinicId } = req.body;
+        const cId = clinicId || req.user?.clinicId;
+        if (!name || !cId) return res.status(400).json({ message: 'name and clinicId are required' });
+        const patient = await Patient.create({ name, age: age || null, gender: gender || null, contactInfo: contactInfo || null, clinicId: cId });
+        if (req.body.husband) {
+            await HusbandInfo.create({ ...req.body.husband, patientId: patient.id });
         }
-
-        const patient = await Patient.create(data);
-
-        res.status(201).json({
-            success: true,
-            message: "Patient registered successfully",
-            data: patient
-        });
-    } catch (error) {
-        console.error("Create Patient Error:", error);
-        res.status(400).json({
-            success: false,
-            message: "Failed to register patient",
-            error: error.message
-        });
+        if (req.body.deliveries && req.body.deliveries.length > 0) {
+            for (const d of req.body.deliveries) {
+                await DeliveryHistory.create({ ...d, patientId: patient.id });
+            }
+        }
+        return res.status(201).json(patient);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };
 
-// Get all patients for the Dashboard
-exports.getAllPatients = async (req, res) => {
+/** GET /clinic/patients/:clinicId - list patients for a clinic */
+exports.listByClinic = async (req, res) => {
     try {
+        const { clinicId } = req.params;
         const patients = await Patient.findAll({
-            order: [['createdAt', 'DESC']]
+            where: { clinicId },
+            include: [HusbandInfo, DeliveryHistory],
+            order: [['id', 'DESC']]
         });
-        res.status(200).json({
-            success: true,
-            count: patients.length,
-            data: patients
-        });
-    } catch (error) {
-        console.error("Get All Patients Error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching patients",
-            error: error.message
-        });
+        return res.json(patients);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };
 
-// Get detailed patient profile with all their visits
-exports.getPatientDetails = async (req, res) => {
+/** GET /clinic/patients/detail/:id - get one patient */
+exports.getOne = async (req, res) => {
     try {
-        const patient = await Patient.findByPk(req.params.id, {
-            include: [{ model: Visit, as: 'Visits' }]
-        });
+        const { id } = req.params;
+        const patient = await Patient.findByPk(id, { include: [HusbandInfo, DeliveryHistory] });
+        if (!patient) return res.status(404).json({ message: 'Patient not found' });
+        return res.json(patient);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
+};
 
-        if (!patient) {
-            return res.status(404).json({
-                success: false,
-                message: "Patient not found"
-            });
-        }
+/** PUT /clinic/patients/:id - update patient */
+exports.updatePatient = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const patient = await Patient.findByPk(id);
+        if (!patient) return res.status(404).json({ message: 'Patient not found' });
+        const { name, age, gender, contactInfo } = req.body;
+        if (name !== undefined) patient.name = name;
+        if (age !== undefined) patient.age = age;
+        if (gender !== undefined) patient.gender = gender;
+        if (contactInfo !== undefined) patient.contactInfo = contactInfo;
+        await patient.save();
+        return res.json(patient);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
+    }
+};
 
-        res.status(200).json({
-            success: true,
-            data: patient
-        });
-    } catch (error) {
-        console.error("Get Patient Details Error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching patient details",
-            error: error.message
-        });
+/** DELETE /clinic/patients/:id */
+exports.deletePatient = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const n = await Patient.destroy({ where: { id } });
+        if (n === 0) return res.status(404).json({ message: 'Patient not found' });
+        return res.json({ message: 'Patient deleted' });
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };

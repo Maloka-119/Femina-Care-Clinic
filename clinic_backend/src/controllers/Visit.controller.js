@@ -1,68 +1,40 @@
-const Patient = require('../models/Patient');
-const Visit = require('../models/Visit');
+const { Visit, Patient, ClinicBranch, User } = require('../models');
 
-// Add a new medical visit/examination
-exports.addVisit = async (req, res) => {
+/** POST /clinic/visits - register a visit (link to branch, patient, employee) */
+exports.createVisit = async (req, res) => {
     try {
-        const { patientId, visitType, clinicName, reasonForVisit } = req.body;
-
-        // Validate required fields
-        if (!patientId || !visitType || !clinicName || !reasonForVisit) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing required fields: patientId, visitType, clinicName, or reasonForVisit."
-            });
+        const { patientId, clinicBranchId, employeeId, date, notes } = req.body;
+        const empId = employeeId || req.user?.id;
+        if (!patientId || !clinicBranchId || !date) {
+            return res.status(400).json({ message: 'patientId, clinicBranchId and date are required' });
         }
-
-        // Check if patient exists
-        const patient = await Patient.findByPk(patientId);
-        if (!patient) {
-            return res.status(404).json({
-                success: false,
-                message: "Cannot add visit. Patient not found."
-            });
-        }
-
-        // Create the visit (only pass patientId with small p)
         const visit = await Visit.create({
-            ...req.body,
-            patientId // correct field name
+            patientId,
+            clinicBranchId,
+            employeeId: empId,
+            date,
+            notes: notes || null
         });
-
-        res.status(201).json({
-            success: true,
-            message: "Visit recorded successfully",
-            data: visit
+        const withAssocs = await Visit.findByPk(visit.id, {
+            include: [Patient, ClinicBranch, { model: User, attributes: ['id', 'name', 'email'] }]
         });
-
-    } catch (error) {
-        console.error(error);
-        res.status(400).json({
-            success: false,
-            message: "Failed to record visit",
-            error: error.message
-        });
+        return res.status(201).json(withAssocs || visit);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };
 
-// Get all visits for a specific patient
-exports.getVisitsByPatient = async (req, res) => {
+/** GET /clinic/visits/:branchId - list visits for a branch */
+exports.listByBranch = async (req, res) => {
     try {
+        const { branchId } = req.params;
         const visits = await Visit.findAll({
-            where: { patientId: req.params.patientId }, // small p
-            order: [['visitDate', 'DESC']]
+            where: { clinicBranchId: branchId },
+            include: [Patient, ClinicBranch, { model: User, attributes: ['id', 'name', 'email'] }],
+            order: [['date', 'DESC'], ['id', 'DESC']]
         });
-
-        res.status(200).json({
-            success: true,
-            data: visits
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Error fetching visits",
-            error: error.message
-        });
+        return res.json(visits);
+    } catch (err) {
+        return res.status(500).json({ message: err.message });
     }
 };

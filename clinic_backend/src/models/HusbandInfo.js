@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const sequelize = require('../config/db'); 
 
 /**
  * HusbandInfo Model
@@ -55,8 +55,7 @@ const HusbandInfo = sequelize.define('HusbandInfo', {
 }, {
     tableName: 'HusbandInfos',
     timestamps: true,
-    underscored: true,
-    indexes: [{ fields: ['patientId'] }]
+    underscored: true
 });
 
 module.exports = HusbandInfo;

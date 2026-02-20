@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
+const sequelize = require('../config/db');
 
 const User = sequelize.define('User', {
     id: {
@@ -7,59 +7,50 @@ const User = sequelize.define('User', {
         primaryKey: true,
         autoIncrement: true
     },
-    email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-        validate: { isEmail: true }
+
+    clinicId: {
+        type: DataTypes.INTEGER,
+        allowNull: true, // Admin مش مربوط بعيادة
+        references: { model: 'Clinics', key: 'id' },
+        onDelete: 'CASCADE'
     },
-    password: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
+
     name: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    // Roles: 'Admin', 'ClinicOwner', 'Doctor'
-    role: {
-        type: DataTypes.ENUM('Admin', 'ClinicOwner', 'Doctor'),
-        defaultValue: 'Doctor',
+
+    email: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true
+    },
+
+    password: {
+        type: DataTypes.STRING,
         allowNull: false
     },
-    // Only Admin and ClinicOwner can activate/deactivate users
-    status: {
-        type: DataTypes.ENUM('Active', 'Inactive', 'Pending'),
-        defaultValue: 'Pending',
-        allowNull: false,
-        comment: 'User must be Active to login'
-    },
-    // Clinic association
-    clinicId: {
+
+    clinicBranchId: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'Clinics', key: 'id' },
-        comment: 'Required for Doctor and ClinicOwner roles'
+        references: { model: 'ClinicBranches', key: 'id' },
+        onDelete: 'SET NULL'
     },
-    // Phone number for doctor
-    phone: {
-        type: DataTypes.STRING,
-        allowNull: true
+
+    role: {
+        type: DataTypes.ENUM('ADMIN', 'OWNER', 'EMPLOYEE', 'PATIENT'),
+        allowNull: false
     },
-    // Specialty for doctors
-    specialty: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        comment: 'e.g., Gynecology, Obstetrics'
-    },
-    lastLogin: {
-        type: DataTypes.DATE,
-        allowNull: true
+
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     }
+
 }, {
     tableName: 'Users',
-    timestamps: true,
-    underscored: true
+    timestamps: true
 });
 
 module.exports = User;
