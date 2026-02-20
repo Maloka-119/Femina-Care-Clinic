@@ -15,8 +15,10 @@ app.use('/api/pregnancies', pregnancyRoutes);
 
 
 const PORT = process.env.PORT || 5000;
+const { initAdmin } = require('./seeders/initAdmin');
 
 sequelize.sync()
+    .then(() => initAdmin())
     .then(() => {
         console.log('Database Connected');
         app.listen(PORT, () => {

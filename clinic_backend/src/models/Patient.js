@@ -2,50 +2,88 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
 const Patient = sequelize.define('Patient', {
-    name: { type: DataTypes.STRING, allowNull: false },
-    age: { type: DataTypes.INTEGER },
-    phone: { type: DataTypes.STRING },
-    maritalStatus: { 
-        type: DataTypes.ENUM('Madam', 'Miss'), 
-        defaultValue: 'Madam' 
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
     },
-    bloodType: { 
-        type: DataTypes.ENUM('A', 'B', 'AB', 'O') 
+    // Clinic reference - CRITICAL for multi-tenancy
+    clinicId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: 'Clinics', key: 'id' },
+        onDelete: 'CASCADE'
     },
-    rhFactor: { 
-        type: DataTypes.ENUM('+', '-') 
+    // Doctor who registered the patient
+    doctorId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: 'Users', key: 'id' },
+        onDelete: 'RESTRICT'
     },
-    clinicLocation: { 
-        type: DataTypes.ENUM('Al Sayeda Zainab', 'Giza'),
+    // Patient basic info
+    name: {
+        type: DataTypes.STRING,
         allowNull: false
     },
-    husbandName: { type: DataTypes.STRING },
-    husbandJob: { type: DataTypes.STRING },
-    marriageDate: { type: DataTypes.DATEONLY }, // تاريخ الزواج للحساب
-    reasonForVisit: { 
-        type: DataTypes.ENUM('Antinatal', 'Postnatal', 'Virgin', 'Other'),
+    age: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    phone: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    // Marital status - determines which fields are required
+    maritalStatus: {
+        type: DataTypes.ENUM('Single', 'Married'),
         allowNull: false
     },
-    // الأمراض المزمنة - سنستخدم مصفوفة أو نص طويل مع الاختيارات
-    chronicDiseases: { 
-        type: DataTypes.TEXT, 
-        comment: 'Diabetes, Hypertension, Heart Disease, Asthma, etc.' 
+    // Blood type and RH factor
+    bloodType: {
+        type: DataTypes.ENUM('A', 'B', 'AB', 'O'),
+        allowNull: true
     },
-    familyHistory: { type: DataTypes.TEXT },
-    otherNotes: { type: DataTypes.TEXT },
-    
-    // حقل وهمي (Virtual) لحساب عدد سنوات الزواج
-    yearsOfMarriage: {
-        type: DataTypes.VIRTUAL,
-        get() {
-            if (this.marriageDate) {
-                const diffMs = Date.now() - new Date(this.marriageDate).getTime();
-                const diffDate = new Date(diffMs);
-                return Math.abs(diffDate.getUTCFullYear() - 1970);
-            }
-            return 0;
-        }
+    rhFactor: {
+        type: DataTypes.ENUM('+', '-'),
+        allowNull: true
+    },
+    // Reason for visit - conditional based on marital status
+    reasonForVisit: {
+        type: DataTypes.STRING, // Will be enum values based on marital status
+        allowNull: false,
+        comment: 'Single: Tumor, Bleeding, Hormonal issues, Other gynecological | Married: Infertility, Tumor, Bleeding, Pregnancy follow-up, Other'
+    },
+    // Chronic diseases
+    chronicDiseases: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'Comma-separated: Diabetes, Hypertension, Heart Disease, Asthma, etc.'
+    },
+    // Family medical history
+    familyHistory: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    // General notes
+    notes: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    // Registration date
+    registeredAt: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     }
+}, {
+    tableName: 'Patients',
+    timestamps: true,
+    underscored: true,
+    indexes: [
+        { fields: ['clinicId'] },
+        { fields: ['doctorId'] },
+        { fields: ['clinicId', 'doctorId'] }
+    ]
 });
 
 module.exports = Patient;

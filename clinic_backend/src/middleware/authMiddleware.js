@@ -1,85 +1,50 @@
-// middleware/authMiddleware.js
-const jwt = require("jsonwebtoken");
-const asyncHandler = require("express-async-handler");
-const User = require("../models/User");
-const Staff = require("../models/Staff");
+const jwt = require('jsonwebtoken');
+const { User, Clinic } = require('../models');
+const { getJwtSecret } = require('../services/auth.service');
 
-// Protect middleware (أي يوزر: graduate, staff, admin)
-const protect = asyncHandler(async (req, res, next) => {
-  let token;
+function getToken(req) {
+    const auth = req.headers.authorization;
+    if (auth && auth.startsWith('Bearer ')) return auth.slice(7);
+    return null;
+}
 
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+async function protect(req, res, next) {
     try {
-      token = req.headers.authorization.split(" ")[1];
-      const secret = process.env.JWT_SECRET || "your_jwt_secret_key_here";
-      const decoded = jwt.verify(token, secret);
+        const token = getToken(req);
+        if (!token) return res.status(401).json({ message: 'Not authorized, no token' });
 
-      // جرب الأول تجيب اليوزر من جدول Users
-      let user = await User.findByPk(decoded.id);
+        const decoded = jwt.verify(token, getJwtSecret());
+        const user = await User.findByPk(decoded.id, {
+            include: [{ association: 'Clinic', required: false }]
+        });
+        if (!user) return res.status(401).json({ message: 'Not authorized, user not found' });
 
-      // لو مش لاقي في Users ممكن يكون Staff
-      if (!user) {
-        const staff = await Staff.findByPk(decoded.id, { include: User });
-        if (staff) {
-          user = await User.findByPk(staff.staff_id);
-        }
-      }
-
-      if (!user) {
-        return res.status(401).json({ message: "Not authorized, user not found" });
-      }
-
-      req.user = user; // خزّن بيانات اليوزر في request
-      next();
-    } catch (error) {
-      console.error("Auth middleware error:", error.message);
-      return res.status(401).json({ message: "Not authorized, token failed" });
+        req.user = user;
+        next();
+    } catch (err) {
+        return res.status(401).json({ message: 'Not authorized, token failed' });
     }
-  } else {
-    return res.status(401).json({ message: "Not authorized, no token" });
-  }
-});
+}
 
-// Role middlewares
-const admin = asyncHandler(async (req, res, next) => {
-  if (req.user && req.user["user-type"] === "admin") {
-    next();
-  } else {
-    return res.status(403).json({ message: "Not authorized as an admin" });
-  }
-});
+function isAdmin(req, res, next) {
+    if (req.user && req.user.role === 'Admin') return next();
+    return res.status(403).json({ message: 'Not authorized as admin' });
+}
 
-const staff = asyncHandler(async (req, res, next) => {
-  if (req.user && req.user["user-type"] === "staff") {
-    next();
-  } else {
-    return res.status(403).json({ message: "Not authorized as staff" });
-  }
-});
+function isClinicOwner(req, res, next) {
+    if (req.user && req.user.role === 'ClinicOwner') return next();
+    return res.status(403).json({ message: 'Not authorized as clinic owner' });
+}
 
-const staffTypeOnly = (staffType) => {
-  return asyncHandler(async (req, res, next) => {
-    const staffProfile = await Staff.findOne({ where: { staff_id: req.user.id } });
-    if (staffProfile && staffProfile.staffType === staffType) {
-      next();
-    } else {
-      return res.status(403).json({ message: `Not authorized as ${staffType} staff` });
-    }
-  });
-};
-
-const graduateOnly = asyncHandler(async (req, res, next) => {
-  if (req.user && req.user["user-type"] === "graduate") {
-    next();
-  } else {
-    return res.status(403).json({ message: "Not authorized as a graduate" });
-  }
-});
+function isActiveAccount(req, res, next) {
+    if (req.user && req.user.isActive) return next();
+    return res.status(403).json({ message: 'Account is inactive' });
+}
 
 module.exports = {
-  protect,
-  admin,
-  staff,
-  staffTypeOnly,
-  graduateOnly,
+    protect,
+    isAdmin,
+    isClinicOwner,
+    isActiveAccount,
+    getToken
 };
