@@ -54,8 +54,7 @@ const HusbandInfo = sequelize.define('HusbandInfo', {
     }
 }, {
     tableName: 'HusbandInfos',
-    timestamps: true,
-    underscored: true
+    timestamps: true
 });
 
 module.exports = HusbandInfo;
