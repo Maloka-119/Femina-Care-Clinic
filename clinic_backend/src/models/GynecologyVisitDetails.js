@@ -20,6 +20,10 @@ const GynecologyVisitDetails = sequelize.define('GynecologyVisitDetails', {
     bloodSugar: DataTypes.STRING,
 
     pregnancyWeek: DataTypes.INTEGER,
+    babyWeight: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
 
     visitType: {
         type: DataTypes.ENUM(
@@ -35,3 +39,5 @@ const GynecologyVisitDetails = sequelize.define('GynecologyVisitDetails', {
     tableName: 'GynecologyVisitDetails',
     timestamps: true
 });
+
+module.exports = GynecologyVisitDetails;

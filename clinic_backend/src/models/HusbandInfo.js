@@ -51,6 +51,10 @@ const HusbandInfo = sequelize.define('HusbandInfo', {
     marriageDate: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    marriageDuration: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'HusbandInfos',

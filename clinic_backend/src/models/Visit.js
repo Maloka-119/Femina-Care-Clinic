@@ -32,6 +32,15 @@ const Visit = sequelize.define('Visit', {
     notes: {
         type: DataTypes.TEXT,
         allowNull: true
+    },
+    type: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Checkup or Consultation'
+    },
+    reason: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'Visits',

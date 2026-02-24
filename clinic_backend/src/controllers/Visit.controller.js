@@ -1,9 +1,9 @@
-const { Visit, Patient, ClinicBranch, User } = require('../models');
+const { Visit, Patient, ClinicBranch, User, GynecologyVisitDetails } = require('../models');
 
 /** POST /clinic/visits - register a visit (link to branch, patient, employee) */
 exports.createVisit = async (req, res) => {
     try {
-        const { patientId, clinicBranchId, employeeId, date, notes } = req.body;
+        const { patientId, clinicBranchId, employeeId, date, notes, type, reason, babyWeight, pregnancyWeek, bloodPressure, bloodSugar } = req.body;
         const empId = employeeId || req.user?.id;
         if (!patientId || !clinicBranchId || !date) {
             return res.status(400).json({ message: 'patientId, clinicBranchId and date are required' });
@@ -13,10 +13,28 @@ exports.createVisit = async (req, res) => {
             clinicBranchId,
             employeeId: empId,
             date,
-            notes: notes || null
+            notes: notes || null,
+            type: type || null,
+            reason: reason || null
         });
+        const isPregnancyFollowUp = reason === 'Pregnancy follow-up' || reason === 'Pregnancy Follow-up';
+        if (isPregnancyFollowUp && (babyWeight != null || pregnancyWeek != null || bloodPressure != null || bloodSugar != null)) {
+            await GynecologyVisitDetails.create({
+                visitId: visit.id,
+                bloodPressure: bloodPressure || null,
+                bloodSugar: bloodSugar || null,
+                pregnancyWeek: pregnancyWeek != null ? Number(pregnancyWeek) : null,
+                babyWeight: babyWeight != null ? String(babyWeight) : null,
+                visitType: 'Pregnancy Follow-up'
+            });
+        }
         const withAssocs = await Visit.findByPk(visit.id, {
-            include: [Patient, ClinicBranch, { model: User, attributes: ['id', 'name', 'email'] }]
+            include: [
+                Patient,
+                ClinicBranch,
+                { model: User, attributes: ['id', 'name', 'email'] },
+                GynecologyVisitDetails
+            ]
         });
         return res.status(201).json(withAssocs || visit);
     } catch (err) {
@@ -30,7 +48,12 @@ exports.listByBranch = async (req, res) => {
         const { branchId } = req.params;
         const visits = await Visit.findAll({
             where: { clinicBranchId: branchId },
-            include: [Patient, ClinicBranch, { model: User, attributes: ['id', 'name', 'email'] }],
+            include: [
+                Patient,
+                ClinicBranch,
+                { model: User, attributes: ['id', 'name', 'email'] },
+                GynecologyVisitDetails
+            ],
             order: [['date', 'DESC'], ['id', 'DESC']]
         });
         return res.json(visits);

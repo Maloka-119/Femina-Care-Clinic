@@ -23,6 +23,23 @@ const Patient = sequelize.define('Patient', {
         type: DataTypes.STRING,
         allowNull: true
     },
+    title: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Mrs or Miss'
+    },
+    bloodType: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    rhFactor: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    chronicIllnessesOrFamilyHistory: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
     clinicId: {
         type: DataTypes.INTEGER,
         allowNull: false,

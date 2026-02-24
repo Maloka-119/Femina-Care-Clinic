@@ -7,6 +7,7 @@ const branchController = require('../controllers/branch.controller');
 const employeeController = require('../controllers/employee.controller');
 const patientController = require('../controllers/patient.controller');
 const visitController = require('../controllers/visit.controller');
+const previousDeliveryController = require('../controllers/previousDelivery.controller');
 
 // Clinics (Admin only for create/toggle; list can be for auth users)
 router.post('/clinics', auth, role('ADMIN'), clinicController.createClinic);
@@ -32,5 +33,12 @@ router.delete('/patients/:id', auth, role('ADMIN', 'OWNER', 'EMPLOYEE'), patient
 // Visits
 router.post('/visits', auth, role('ADMIN', 'OWNER', 'EMPLOYEE'), visitController.createVisit);
 router.get('/visits/:branchId', auth, visitController.listByBranch);
+
+// Previous Deliveries (per patient)
+router.get('/previous-deliveries/patient/:patientId', auth, previousDeliveryController.listByPatient);
+router.post('/previous-deliveries', auth, role('ADMIN', 'OWNER', 'EMPLOYEE'), previousDeliveryController.create);
+router.get('/previous-deliveries/:id', auth, previousDeliveryController.getOne);
+router.put('/previous-deliveries/:id', auth, role('ADMIN', 'OWNER', 'EMPLOYEE'), previousDeliveryController.update);
+router.delete('/previous-deliveries/:id', auth, role('ADMIN', 'OWNER', 'EMPLOYEE'), previousDeliveryController.remove);
 
 module.exports = router;

@@ -7,6 +7,8 @@ const Patient = require('./Patient');
 const Visit = require('./Visit');
 const HusbandInfo = require('./HusbandInfo');
 const DeliveryHistory = require('./DeliveryHistory');
+const PreviousDelivery = require('./PreviousDelivery');
+const GynecologyVisitDetails = require('./GynecologyVisitDetails');
 
 // Clinic <-> ClinicBranch
 Clinic.hasMany(ClinicBranch, { foreignKey: 'clinicId' });
@@ -44,6 +46,17 @@ HusbandInfo.belongsTo(Patient, { foreignKey: 'patientId' });
 Patient.hasMany(DeliveryHistory, { foreignKey: 'patientId' });
 DeliveryHistory.belongsTo(Patient, { foreignKey: 'patientId' });
 
+// Patient <-> PreviousDeliveries (one-to-many)
+Patient.hasMany(PreviousDelivery, { foreignKey: 'patientId' });
+PreviousDelivery.belongsTo(Patient, { foreignKey: 'patientId' });
+// Creator (User) <-> PreviousDelivery
+User.hasMany(PreviousDelivery, { foreignKey: 'createdBy' });
+PreviousDelivery.belongsTo(User, { foreignKey: 'createdBy', as: 'Creator' });
+
+// Visit <-> GynecologyVisitDetails
+Visit.hasOne(GynecologyVisitDetails, { foreignKey: 'visitId' });
+GynecologyVisitDetails.belongsTo(Visit, { foreignKey: 'visitId' });
+
 module.exports = {
     sequelize,
     Clinic,
@@ -52,5 +65,7 @@ module.exports = {
     Patient,
     Visit,
     HusbandInfo,
-    DeliveryHistory
+    DeliveryHistory,
+    PreviousDelivery,
+    GynecologyVisitDetails
 };
