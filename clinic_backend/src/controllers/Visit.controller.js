@@ -3,7 +3,11 @@ const { Visit, Patient, ClinicBranch, User, GynecologyVisitDetails } = require('
 /** POST /clinic/visits - register a visit (link to branch, patient, employee) */
 exports.createVisit = async (req, res) => {
     try {
-        const { patientId, clinicBranchId, employeeId, date, notes, type, reason, babyWeight, pregnancyWeek, bloodPressure, bloodSugar } = req.body;
+        const {
+            patientId, clinicBranchId, employeeId, date, notes, type, reason,
+            bloodSugar, bloodPressure, babyWeight, babyAgeWeeks, requiredTests, previousTestResults,
+            pregnancyWeek
+        } = req.body;
         const empId = employeeId || req.user?.id;
         if (!patientId || !clinicBranchId || !date) {
             return res.status(400).json({ message: 'patientId, clinicBranchId and date are required' });
@@ -15,7 +19,13 @@ exports.createVisit = async (req, res) => {
             date,
             notes: notes || null,
             type: type || null,
-            reason: reason || null
+            reason: reason || null,
+            bloodSugar: bloodSugar || null,
+            bloodPressure: bloodPressure || null,
+            babyWeight: babyWeight != null ? String(babyWeight) : null,
+            babyAgeWeeks: babyAgeWeeks != null && babyAgeWeeks !== '' ? Number(babyAgeWeeks) : null,
+            requiredTests: requiredTests || null,
+            previousTestResults: previousTestResults || null
         });
         const isPregnancyFollowUp = reason === 'Pregnancy follow-up' || reason === 'Pregnancy Follow-up';
         if (isPregnancyFollowUp && (babyWeight != null || pregnancyWeek != null || bloodPressure != null || bloodSugar != null)) {

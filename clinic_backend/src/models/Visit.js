@@ -41,6 +41,32 @@ const Visit = sequelize.define('Visit', {
     reason: {
         type: DataTypes.STRING,
         allowNull: true
+    },
+    bloodSugar: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    bloodPressure: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    babyWeight: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    babyAgeWeeks: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    requiredTests: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'تحاليل مطلوبه'
+    },
+    previousTestResults: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        comment: 'نتيجه التحاليل السابقه'
     }
 }, {
     tableName: 'Visits',

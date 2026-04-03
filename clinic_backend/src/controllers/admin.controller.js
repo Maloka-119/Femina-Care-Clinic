@@ -18,7 +18,7 @@ exports.createClinic = async (req, res) => {
             password: hashedPassword,
             role: 'OWNER',
             clinicId: clinic.id,
-            isActive: false // لازم الادمن يفعل الحساب
+            isActive: true
         });
 
         res.status(201).json({
@@ -72,12 +72,7 @@ exports.deactivateClinic = async (req, res) => {
 
     await Clinic.update({ isActive: false }, { where: { id: clinicId } });
 
-    await User.update(
-        { isActive: false },
-        { where: { clinicId } }
-    );
-
-    res.json({ message: 'Clinic and users deactivated' });
+    res.json({ message: 'Clinic deactivated' });
 };
 
 exports.deleteClinic = async (req, res) => {

@@ -1,5 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+const toBoolean = require('../utils/toBoolean');
 
 const User = sequelize.define('User', {
     id: {
@@ -45,7 +46,14 @@ const User = sequelize.define('User', {
 
     isActive: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
+        // Normalize DB values (boolean/0/1/'0'/'1') into a real boolean.
+        get() {
+            return toBoolean(this.getDataValue('isActive'));
+        },
+        set(value) {
+            this.setDataValue('isActive', toBoolean(value));
+        }
     }
 
 }, {

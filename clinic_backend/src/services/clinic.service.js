@@ -45,11 +45,6 @@ class ClinicService {
             { where: { id: clinicId } }
         );
 
-        await User.update(
-            { isActive: false },
-            { where: { clinicId } }
-        );
-
         return true;
     }
 

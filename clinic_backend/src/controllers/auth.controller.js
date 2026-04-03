@@ -1,23 +1,72 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Clinic } = require('../models');
+const toBoolean = require('../utils/toBoolean');
 
 exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        if (!email || !password) return res.status(400).json({ message: 'Email and password are required' });
 
-        const user = await User.findOne({ where: { email }, include: [Clinic] });
-        if (!user) return res.status(404).json({ message: 'User not found' });
+        // ✅ Validate input
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
 
-        if (!user.isActive) return res.status(403).json({ message: 'Account inactive' });
+        // ✅ Get user with clinic
+        const user = await User.findOne({
+            where: { email },
+            include: [Clinic]
+        });
 
-        if (user.Clinic && !user.Clinic.isActive)
-            return res.status(403).json({ message: 'Clinic inactive' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
+        // ✅ Normalize booleans manually (بدون الاعتماد على toBoolean)
+        const userActive =
+            user.isActive === true ||
+            user.isActive === 1 ||
+            user.isActive === '1';
+
+        const clinicActive =
+            user.Clinic?.isActive === true ||
+            user.Clinic?.isActive === 1 ||
+            user.Clinic?.isActive === '1';
+
+        // ✅ Debug logs
+        console.log({
+            userActiveRaw: user.isActive,
+            clinicActiveRaw: user.Clinic?.isActive,
+            userActive,
+            clinicActive
+        });
+
+        // ✅ Activation logic
+        if (user.role !== 'ADMIN') {
+            if (!userActive) {
+                return res.status(403).json({ message: 'User inactive' });
+            }
+
+            if (!user.Clinic) {
+                return res.status(403).json({ message: 'Clinic not assigned' });
+            }
+
+            if (!clinicActive) {
+                return res.status(403).json({ message: 'Clinic inactive' });
+            }
+        } else {
+            if (!userActive) {
+                return res.status(403).json({ message: 'Admin inactive' });
+            }
+        }
+
+        // ✅ Check password
         const match = await bcrypt.compare(password, user.password);
-        if (!match) return res.status(400).json({ message: 'Wrong password' });
+        if (!match) {
+            return res.status(400).json({ message: 'Wrong password' });
+        }
 
+        // ✅ Generate token
         const token = jwt.sign(
             {
                 id: user.id,
@@ -29,11 +78,13 @@ exports.login = async (req, res) => {
             { expiresIn: '7d' }
         );
 
+        // ✅ Remove password
         const { password: _, ...safeUser } = user.toJSON();
-        res.json({ token, user: safeUser });
+
+        return res.json({ token, user: safeUser });
 
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return res.status(500).json({ error: err.message });
     }
 };
 
