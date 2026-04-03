@@ -40,7 +40,7 @@ exports.createClinic = async (req, res) => {
             password: hashed,
             role: 'OWNER',
             clinicId: clinic.id,
-            isActive: true // ✅ مهم جدًا
+            isActive: false
         });
 
         return res.status(201).json({
